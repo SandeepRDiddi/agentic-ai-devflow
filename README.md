@@ -8,26 +8,82 @@
 
 ## What's inside
 
-| Layer | What it does | Project |
+| Layer | What it does | |
 |---|---|---|
-| **GitHub Actions** | Auto-fills PR templates from diffs using Claude | CommitCraft · P2 |
-| **FastAPI backend** | LangGraph agent orchestrating all Claude Skills | DevFlow Hub · P4 |
-| **Claude Skills** | 4 SKILL.md files — pr-reviewer, data-contract-bot, openspec-validator, agentbench-runner | SkillForge · P3 |
-| **AgentBench** | Times 6 dev tasks: manual vs agent, writes results.csv | AgentBench · P5 |
-| **OpenSpec** | spec.yaml contracts enforced by SpecBot | SpecBot · P1 |
+| **`review.py`** | One-command AI code reviewer — point at any Python project | ⭐ Start here |
+| **GitHub Actions** | Auto-fills PR templates from diffs using Claude | CommitCraft |
+| **FastAPI backend** | LangGraph agent orchestrating all Claude Skills | DevFlow Hub |
+| **Claude Skills** | 4 SKILL.md files — pr-reviewer, data-contract-bot, openspec-validator, agentbench-runner | SkillForge |
+| **AgentBench** | Times 6 dev tasks: manual vs agent, writes results.csv | AgentBench |
+| **OpenSpec** | spec.yaml contracts enforced by SpecBot | SpecBot |
 
-## Quickstart
+---
+
+## ⭐ Quickstart — AI code review on any Python project
 
 ```bash
-# 1. Clone
-git clone https://github.com/SandeepRDiddi/devflow-lab
-cd devflow-lab
+# 1. Clone this repo
+git clone https://github.com/SandeepRDiddi/agentic-ai-devflow.git
+cd agentic-ai-devflow
 
 # 2. Add your Anthropic API key
 cp .env.example .env
+# Open .env and set: ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Install dependencies
+pip install anthropic rich httpx python-dotenv
+
+# 4. Point at any Python project and get a full AI review
+python review.py ../your-python-project
+```
+
+That's it. Claude reviews every Python file using the `pr-reviewer` skill and saves a full Markdown report to `review_report.md`.
+
+### What you get
+
+- **Terminal output** — live review of each file printed as Claude reads it
+- **`review_report.md`** — structured report saved to disk covering security issues, bugs, performance, test coverage, and concrete code suggestions
+
+### Examples
+
+```bash
+# Review any project by passing its folder path
+python review.py ../SOLO_NODE
+
+# Review a FastAPI app
+python review.py ~/projects/my-fastapi-app
+
+# Review the current directory
+python review.py .
+```
+
+### Benchmark — what this actually saves you
+
+Running `review.py` on a 5-file Python transaction pipeline:
+
+| File | Lines | Agent time | Manual estimate |
+|---|---|---|---|
+| security.py | 18 | 27s | ~45 min |
+| fee.py | 14 | 22s | ~45 min |
+| validation.py | 22 | 24s | ~45 min |
+| audit.py | 20 | 21s | ~45 min |
+| main.py | 38 | 26s | ~45 min |
+| **Total** | **112** | **~2 min** | **~3h 45m** |
+
+**~99% time saved. ~108x faster than a manual review.**
+
+---
+
+## Full setup (Docker)
+
+```bash
+# 1. Clone and configure
+git clone https://github.com/SandeepRDiddi/agentic-ai-devflow
+cd agentic-ai-devflow
+cp .env.example .env
 # Edit .env → set ANTHROPIC_API_KEY=sk-ant-...
 
-# 3. Run everything
+# 2. Run everything
 docker compose up
 ```
 
@@ -46,7 +102,7 @@ hatch run dev       # starts FastAPI on port 8000
 
 ```bash
 hatch run benchmark
-# Outputs a table + agentbench/results.csv
+# Outputs a rich table + agentbench/results.csv
 ```
 
 | Task | Manual | Agent | Saved |
@@ -69,7 +125,8 @@ hatch run eval
 ## Project structure
 
 ```
-devflow-lab/
+agentic-ai-devflow/
+├── review.py                          # ⭐ AI code reviewer — point at any project
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md       # OpenSpec-driven PR template
 │   └── workflows/
@@ -90,6 +147,7 @@ devflow-lab/
 │       ├── specbot/validate.py        # OpenSpec validator
 │       ├── commitcraft/diff_parser.py # Diff → PR description
 │       └── agentbench/benchmark.py    # Timing harness
+├── mini_reviewer/                     # Demo scripts
 ├── evals/
 │   └── pr-reviewer-evals.json
 ├── scripts/
@@ -98,6 +156,16 @@ devflow-lab/
 ├── docker-compose.yml
 └── Makefile
 ```
+
+## How it works
+
+The core pattern behind everything in this repo:
+
+```
+Skill (SKILL.md)  +  Your code  →  Claude  →  Structured output
+```
+
+Each `SKILL.md` is a system prompt that turns Claude into a specialist. The `pr-reviewer` skill makes Claude behave like a senior engineer doing code reviews. The `data-contract-bot` skill makes it behave like a data architect. You pass your code as the task, and Claude produces professional-quality output in seconds.
 
 ## Contributing
 
