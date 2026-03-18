@@ -1,0 +1,17 @@
+{
+  "skill": "pr-reviewer",
+  "version": "1.0.0",
+  "description": "Tests that pr-reviewer triggers for code/PR tasks and not for unrelated queries",
+  "test_cases": [
+    {"prompt": "Review this PR that adds JWT auth to the login endpoint",        "should_trigger": true},
+    {"prompt": "Check my code change for security vulnerabilities",              "should_trigger": true},
+    {"prompt": "Write a PR description for my diff",                             "should_trigger": true},
+    {"prompt": "Generate unit tests for this function",                          "should_trigger": true},
+    {"prompt": "What bugs do you see in this Python code?",                      "should_trigger": true},
+    {"prompt": "Write a changelog entry for the new caching feature",            "should_trigger": true},
+    {"prompt": "What is the capital of France?",                                 "should_trigger": false},
+    {"prompt": "How do I install Python on macOS?",                              "should_trigger": false},
+    {"prompt": "Explain how transformer attention works",                        "should_trigger": false},
+    {"prompt": "What is the difference between REST and GraphQL?",               "should_trigger": false}
+  ]
+}

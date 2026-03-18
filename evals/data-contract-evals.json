@@ -1,0 +1,16 @@
+{
+  "skill": "data-contract-bot",
+  "version": "1.0.0",
+  "description": "Tests that data-contract-bot triggers for data governance tasks",
+  "test_cases": [
+    {"prompt": "Generate a data contract for my user_events table",             "should_trigger": true},
+    {"prompt": "Validate this ODCS data contract YAML",                         "should_trigger": true},
+    {"prompt": "Write a data product spec for the orders dataset",              "should_trigger": true},
+    {"prompt": "Check if this schema follows the data contract standard",       "should_trigger": true},
+    {"prompt": "What SLA fields should I add to my data contract?",             "should_trigger": true},
+    {"prompt": "Create a data contract for the NNDM platform events table",     "should_trigger": true},
+    {"prompt": "How do I write a for loop in Python?",                          "should_trigger": false},
+    {"prompt": "What is the capital of France?",                                "should_trigger": false},
+    {"prompt": "Review my pull request",                                        "should_trigger": false}
+  ]
+}

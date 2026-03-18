@@ -1,0 +1,42 @@
+name: pull-request-spec
+version: "1.0.0"
+description: Schema for auto-generating standardised PR descriptions
+
+fields:
+  - name: summary
+    type: string
+    required: true
+    max_words: 30
+    prompt: "One sentence: what does this PR do and why?"
+
+  - name: changes
+    type: list
+    required: true
+    items:
+      type: string
+      max_words: 15
+    prompt: "List every meaningful code change. One item per change."
+
+  - name: testing
+    type: string
+    required: true
+    prompt: "How was this tested? Include commands or test names."
+
+  - name: breaking_changes
+    type: boolean
+    required: true
+    prompt: "Does this PR introduce any breaking changes?"
+
+  - name: related_issues
+    type: list
+    required: false
+    items:
+      type: string
+      pattern: "^#[0-9]+$"
+    prompt: "List related GitHub issue numbers e.g. #42"
+
+  - name: reviewer_notes
+    type: string
+    required: false
+    max_words: 50
+    prompt: "Anything the reviewer should pay special attention to?"

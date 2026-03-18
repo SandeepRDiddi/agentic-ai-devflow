@@ -1,0 +1,52 @@
+name: data-contract-spec
+version: "1.0.0"
+description: Schema for ODCS-aligned data contracts
+
+fields:
+  - name: id
+    type: string
+    required: true
+    pattern: "^[a-z0-9-]+$"
+
+  - name: name
+    type: string
+    required: true
+
+  - name: version
+    type: string
+    required: true
+    pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+  - name: owner
+    type: string
+    required: true
+
+  - name: domain
+    type: string
+    required: true
+
+  - name: description
+    type: string
+    required: true
+
+  - name: schema
+    type: object
+    required: true
+    fields:
+      - name: columns
+        type: list
+        items:
+          type: object
+          fields:
+            - {name: name,        type: string,  required: true}
+            - {name: type,        type: string,  required: true}
+            - {name: nullable,    type: boolean, required: true}
+            - {name: description, type: string,  required: false}
+            - {name: pii,         type: boolean, required: false}
+
+  - name: sla
+    type: object
+    required: false
+    fields:
+      - {name: freshness,    type: string, required: false}
+      - {name: availability, type: string, required: false}

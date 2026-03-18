@@ -1,0 +1,7 @@
+name,manual_min,agent_sec,agent_min,saved_pct,output_preview
+Write PR description,25,21.2,0.35,98.6,# Pull Request Description  ---  ## Add JWT Authentication to FastAPI Endpoints  ### Summary  Introduces JWT-based authentication across protected API...
+Validate data contract,40,19.0,0.32,99.2,"## Validation Report — `user_events` v1.0.0  **Result:** ❌ Invalid — 4 violations, 6 suggestions  ---  ### Violations  | # | Severity | Field | Issue ..."
+Code review + comments,55,25.0,0.42,99.2,"## PR Review: `get_user` function  **Summary:** Fetches a single user record by ID using a raw database connection.  ---  ## ✅ What's Good  - Simple, ..."
+Generate OpenSpec YAML,30,18.6,0.31,99.0,"```yaml name: user-registration-endpoint version: ""1.0.0"" description: >   Validates the incoming payload for a REST API user registration endpoint.  ..."
+Write unit tests,60,13.8,0.23,99.6,"# Email Validator — pytest Unit Tests  First, here's the implementation we're testing so the tests have something to run against:  ```python # email_v..."
+README + changelog,20,17.5,0.29,98.6,## README Section  ---  ## Async Job Queue  This project uses **Celery** with **Redis** as a message broker to process background jobs asynchronously....
