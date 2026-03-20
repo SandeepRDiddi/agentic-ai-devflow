@@ -1,6 +1,6 @@
 # devflow-lab 🤖
 
-> **One deployable open-source app that teaches you Claude Skills, OpenSpec, GitHub PR automation, and agent benchmarking — end to end.**
+> **One deployable open-source app that bridges PhD research in Ontology & Semantic Web with production Agentic AI — featuring Claude Skills, OWL ontology-driven code review, OpenSpec schema validation, GitHub PR automation, and agent benchmarking.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](pyproject.toml)
@@ -10,10 +10,12 @@
 
 | Layer | What it does | |
 |---|---|---|
-| **`review.py`** | One-command AI code reviewer — point at any Python project | ⭐ Start here |
+| **`review.py`** | One-command AI code reviewer — standard or ontology-aware mode | ⭐ Start here |
+| **`ontology/agentic-ai.owl`** | OWL ontology: agent system + code review domain (Protégé-compatible) | 🧠 Ontology |
+| **`app/backend/ontology/`** | Python module: OWL loader (rdflib), finding classifier, conformance validator | 🔍 Semantic layer |
+| **5 Claude Skills** | pr-reviewer, data-contract-bot, openspec-validator, agentbench-runner, **ontology-validator** | 🎯 Skills |
 | **GitHub Actions** | Auto-fills PR templates from diffs using Claude | CommitCraft |
-| **FastAPI backend** | LangGraph agent orchestrating all Claude Skills | DevFlow Hub |
-| **Claude Skills** | 4 SKILL.md files — pr-reviewer, data-contract-bot, openspec-validator, agentbench-runner | SkillForge |
+| **FastAPI backend** | LangGraph agent + `/ontology` API endpoints | DevFlow Hub |
 | **AgentBench** | Times 6 dev tasks: manual vs agent, writes results.csv | AgentBench |
 | **OpenSpec** | spec.yaml contracts enforced by SpecBot | SpecBot |
 
@@ -39,19 +41,42 @@ python review.py ../your-python-project
 
 That's it. Claude reviews every Python file using the `pr-reviewer` skill and saves a full Markdown report to `review_report.md`.
 
+### Ontology-aware mode (new 🧠)
+
+```bash
+# Add --ontology to classify every finding into a formal OWL class
+python review.py ../your-python-project --ontology
+```
+
+With `--ontology`, the `ontology-validator` skill is used. Each finding in the report is tagged with its OWL class URI from the `aai:ReviewFinding` hierarchy:
+
+| OWL Class | What it flags |
+|---|---|
+| `aai:SecurityVulnerability` | SQL injection, hardcoded secrets, missing auth |
+| `aai:BugFinding` | Logic errors, crashes, incorrect behaviour |
+| `aai:PerformanceIssue` | N+1 queries, blocking async, memory waste |
+| `aai:DesignIssue` | DRY violations, tight coupling, poor naming |
+| `aai:CodeQualityIssue` | Missing type hints, test gaps, poor docs |
+| `aai:Suggestion` | Optional improvements, nice-to-haves |
+
+The report also includes a **conformance score** (how closely the file's structure matches ontological constraints) and an **ontological finding distribution table**.
+
 ### What you get
 
-- **Terminal output** — live review of each file printed as Claude reads it
-- **`review_report.md`** — structured report saved to disk covering security issues, bugs, performance, test coverage, and concrete code suggestions
+- **Terminal output** — live review with ontological class labels per finding
+- **`review_report.md`** — full structured report including OWL class annotations, conformance scores, and finding distribution table
 
 ### Examples
 
 ```bash
-# Review any project by passing its folder path
+# Standard review (pr-reviewer skill)
 python review.py ../SOLO_NODE
 
-# Review a FastAPI app
-python review.py ~/projects/my-fastapi-app
+# Ontology-aware review (ontology-validator skill)
+python review.py ../SOLO_NODE --ontology
+
+# Review a FastAPI app with ontology classification
+python review.py ~/projects/my-fastapi-app --ontology
 
 # Review the current directory
 python review.py .
@@ -126,7 +151,9 @@ hatch run eval
 
 ```
 agentic-ai-devflow/
-├── review.py                          # ⭐ AI code reviewer — point at any project
+├── review.py                          # ⭐ AI code reviewer (--ontology for OWL mode)
+├── ontology/
+│   └── agentic-ai.owl                 # 🧠 OWL ontology in Turtle format (Protégé-compatible)
 ├── .github/
 │   ├── PULL_REQUEST_TEMPLATE.md       # OpenSpec-driven PR template
 │   └── workflows/
@@ -136,14 +163,19 @@ agentic-ai-devflow/
 │   ├── pr-spec.yaml                   # OpenSpec schema for PRs
 │   └── data-contract.spec.yaml        # OpenSpec schema for data contracts
 ├── skills/
-│   ├── pr-reviewer/SKILL.md
-│   ├── data-contract-bot/SKILL.md
-│   ├── openspec-validator/SKILL.md
-│   └── agentbench-runner/SKILL.md
+│   ├── pr-reviewer/SKILL.md           # Ontological role: senior code reviewer
+│   ├── data-contract-bot/SKILL.md     # Ontological role: data architect
+│   ├── openspec-validator/SKILL.md    # Ontological role: schema validator
+│   ├── agentbench-runner/SKILL.md     # Ontological role: benchmark runner
+│   └── ontology-validator/SKILL.md   # 🧠 Ontological role: OWL-aware code reviewer
 ├── app/
 │   └── backend/
-│       ├── main.py                    # FastAPI entry point
+│       ├── main.py                    # FastAPI entry point + /ontology routes
 │       ├── agent.py                   # LangGraph + Langfuse orchestrator
+│       ├── ontology/                  # 🧠 Ontology Python module
+│       │   ├── loader.py              # rdflib OWL loader + SPARQL queries
+│       │   ├── mapper.py              # skill name → OWL class URI (no rdflib needed)
+│       │   └── validator.py           # conformance checker + finding classifier
 │       ├── specbot/validate.py        # OpenSpec validator
 │       ├── commitcraft/diff_parser.py # Diff → PR description
 │       └── agentbench/benchmark.py    # Timing harness
@@ -152,20 +184,72 @@ agentic-ai-devflow/
 │   └── pr-reviewer-evals.json
 ├── scripts/
 │   └── run_eval.py
-├── pyproject.toml                     # Hatch workspace
+├── pyproject.toml                     # Hatch workspace (includes rdflib)
 ├── docker-compose.yml
 └── Makefile
 ```
+
+## Ontology layer — PhD research in production
+
+The `ontology/` directory contains a full OWL ontology (`agentic-ai.owl`) that formally models the entire agentic system. It is **Protégé-compatible** — open the file directly in [Protégé](https://protege.stanford.edu/) to browse the class hierarchy.
+
+### Three-layer semantic architecture
+
+```
+Ontological Skill (SKILL.md = OWL role definition)
+      +
+Semantic Schema (OpenSpec YAML = OWL class constraints)
+      +
+Knowledge Input (Python code = aai:CodeFile instances)
+          ↓
+Claude Sonnet (aai:SkillAgent — semantic reasoner)
+          ↓
+Ontologically-classified Output (aai:ReviewReport with aai:hasFinding assertions)
+```
+
+### Key ontological classes
+
+**Agent system:**
+- `aai:SkillAgent` — any agent whose behaviour is defined by a Skill
+- `aai:PRReviewerAgent`, `aai:OntologyValidatorAgent`, … — concrete agent types
+- `aai:Skill` — formal role definition (SKILL.md as ontological constraint set)
+- `aai:Schema` — OpenSpec YAML schema enforcing output structure
+
+**Code review domain:**
+- `aai:CodeFile` → `aai:PythonFile` — source files under review
+- `aai:ReviewFinding` — base class for all findings
+  - `aai:SecurityVulnerability` · `aai:BugFinding` · `aai:PerformanceIssue`
+  - `aai:DesignIssue` · `aai:CodeQualityIssue` · `aai:Suggestion`
+
+### Ontology API endpoints
+
+```bash
+GET  /ontology              # Summary: class count, triple count, namespace
+GET  /ontology/classes      # All OWL classes with labels + comments
+GET  /ontology/findings     # All subclasses of aai:ReviewFinding
+GET  /ontology/skills       # Skill → agent class URI mapping
+POST /ontology/validate     # Validate a review result, returns conformance score + finding classifications
+```
+
+### Install with rdflib (for full OWL queries)
+
+```bash
+pip install rdflib
+```
+
+Without rdflib, `review.py --ontology` and the `/ontology/validate` endpoint still work — they use the lightweight `SkillMapper` and `OntologyValidator` modules which have no rdflib dependency.
+
+---
 
 ## How it works
 
 The core pattern behind everything in this repo:
 
 ```
-Skill (SKILL.md)  +  Your code  →  Claude  →  Structured output
+Ontological Skill (SKILL.md)  +  Your code  →  Claude (semantic reasoner)  →  Schema-validated structured output
 ```
 
-Each `SKILL.md` is a system prompt that turns Claude into a specialist. The `pr-reviewer` skill makes Claude behave like a senior engineer doing code reviews. The `data-contract-bot` skill makes it behave like a data architect. You pass your code as the task, and Claude produces professional-quality output in seconds.
+Each `SKILL.md` is an **ontological role definition** that formally constrains the agent's domain, reasoning rules, and output structure. The `pr-reviewer` skill makes Claude behave like a senior engineer. The `ontology-validator` skill makes it reason over the formal OWL class hierarchy and tag every finding with its `aai:ReviewFinding` subclass URI. OpenSpec YAML schemas act as runtime ontological constraints on the output.
 
 ## Contributing
 

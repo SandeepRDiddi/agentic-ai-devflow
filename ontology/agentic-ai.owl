@@ -1,0 +1,436 @@
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc:   <http://purl.org/dc/elements/1.1/> .
+@prefix aai:  <https://sandeep-diddi.github.io/agentic-ai-devflow/ontology#> .
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Ontology Header
+# ═══════════════════════════════════════════════════════════════════════════
+
+<https://sandeep-diddi.github.io/agentic-ai-devflow/ontology>
+    a owl:Ontology ;
+    dc:title "Agentic AI DevFlow Ontology" ;
+    dc:description """
+        Formal OWL ontology for the agentic-ai-devflow system.
+        Bridges PhD research in Ontology & Semantic Web with
+        production agentic AI code review pipelines.
+
+        Models two domains:
+          1. Agent System  — SkillAgent, Task, Artifact, Skill, Schema
+          2. Code Review   — CodeFile, ReviewFinding subtypes, BenchmarkResult
+
+        Each Skill is an ontological role definition (SKILL.md as formal constraint set).
+        Claude Sonnet acts as the semantic reasoner over these constraints.
+        OpenSpec YAML schemas enforce output as ontological class instances.
+    """ ;
+    dc:creator "Sandeep Diddi" ;
+    dc:date "2026-03-20" ;
+    owl:versionInfo "1.0.0" .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAYER 1 — AGENT SYSTEM CLASSES
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── Top-level ──────────────────────────────────────────────────────────────
+
+aai:AgenticSystem
+    a owl:Class ;
+    rdfs:label "Agentic System" ;
+    rdfs:comment "The top-level agentic AI pipeline that orchestrates skills, tasks, and artifacts." .
+
+aai:SkillAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:AgenticSystem ;
+    rdfs:label "Skill Agent" ;
+    rdfs:comment """
+        An agent instance whose behaviour is fully defined by an ontological Skill
+        (a SKILL.md file). The Skill acts as the agent's formal role specification —
+        constraining its domain, reasoning rules, and output structure.
+    """ .
+
+# ── Concrete agent types ───────────────────────────────────────────────────
+
+aai:PRReviewerAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:SkillAgent ;
+    rdfs:label "PR Reviewer Agent" ;
+    rdfs:comment "Agent specialised in code review, security analysis, and PR description generation." .
+
+aai:DataContractAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:SkillAgent ;
+    rdfs:label "Data Contract Agent" ;
+    rdfs:comment "Agent specialised in generating ODCS-compliant data contracts from schema descriptions." .
+
+aai:OpenSpecValidatorAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:SkillAgent ;
+    rdfs:label "OpenSpec Validator Agent" ;
+    rdfs:comment "Agent that validates arbitrary content against an OpenSpec YAML schema using semantic reasoning." .
+
+aai:AgentBenchAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:SkillAgent ;
+    rdfs:label "AgentBench Agent" ;
+    rdfs:comment "Agent that executes benchmark tasks and measures wall-clock performance against manual estimates." .
+
+aai:OntologyValidatorAgent
+    a owl:Class ;
+    rdfs:subClassOf aai:SkillAgent ;
+    rdfs:label "Ontology Validator Agent" ;
+    rdfs:comment """
+        Agent that performs ontology-aware code review. Classifies each finding
+        into formal ontological categories (BugFinding, SecurityVulnerability, etc.)
+        and returns structured output conforming to this ontology.
+    """ .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAYER 2 — TASK CLASSES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:Task
+    a owl:Class ;
+    rdfs:label "Task" ;
+    rdfs:comment "A unit of work submitted to a SkillAgent as the user-turn message." .
+
+aai:CodeReviewTask
+    a owl:Class ;
+    rdfs:subClassOf aai:Task ;
+    rdfs:label "Code Review Task" ;
+    rdfs:comment "A task to review one or more source code files for quality, security, and correctness." .
+
+aai:DataContractTask
+    a owl:Class ;
+    rdfs:subClassOf aai:Task ;
+    rdfs:label "Data Contract Task" ;
+    rdfs:comment "A task to generate a formal ODCS data contract from a schema description." .
+
+aai:ValidationTask
+    a owl:Class ;
+    rdfs:subClassOf aai:Task ;
+    rdfs:label "Validation Task" ;
+    rdfs:comment "A task to validate structured content against an OpenSpec schema." .
+
+aai:BenchmarkTask
+    a owl:Class ;
+    rdfs:subClassOf aai:Task ;
+    rdfs:label "Benchmark Task" ;
+    rdfs:comment "A task to measure agent performance: wall-clock time, accuracy, and cost efficiency." .
+
+aai:OntologyValidationTask
+    a owl:Class ;
+    rdfs:subClassOf aai:Task ;
+    rdfs:label "Ontology Validation Task" ;
+    rdfs:comment "A task to validate review findings against the formal agentic-ai ontology classes." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAYER 3 — ARTIFACT CLASSES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:Artifact
+    a owl:Class ;
+    rdfs:label "Artifact" ;
+    rdfs:comment "Any structured output produced by a SkillAgent." .
+
+aai:ReviewReport
+    a owl:Class ;
+    rdfs:subClassOf aai:Artifact ;
+    rdfs:label "Review Report" ;
+    rdfs:comment "A structured Markdown report produced by PRReviewerAgent or OntologyValidatorAgent." .
+
+aai:OntologyAnnotatedReport
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewReport ;
+    rdfs:label "Ontology-Annotated Report" ;
+    rdfs:comment "A ReviewReport where each finding is tagged with its formal ontological class URI." .
+
+aai:DataContract
+    a owl:Class ;
+    rdfs:subClassOf aai:Artifact ;
+    rdfs:label "Data Contract" ;
+    rdfs:comment "An ODCS-compliant data contract produced by DataContractAgent." .
+
+aai:ValidationResult
+    a owl:Class ;
+    rdfs:subClassOf aai:Artifact ;
+    rdfs:label "Validation Result" ;
+    rdfs:comment "A JSON object with valid/violations/suggestions produced by OpenSpecValidatorAgent." .
+
+aai:BenchmarkResult
+    a owl:Class ;
+    rdfs:subClassOf aai:Artifact ;
+    rdfs:label "Benchmark Result" ;
+    rdfs:comment "A CSV/table result produced by AgentBenchAgent, capturing time and cost metrics." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAYER 4 — SKILL & SCHEMA CLASSES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:Skill
+    a owl:Class ;
+    rdfs:label "Skill" ;
+    rdfs:comment """
+        An ontological role definition for a SkillAgent. Encoded as a SKILL.md file
+        that becomes the LLM system prompt — equivalent to an OWL class definition
+        constraining the agent's domain, behaviour, and output structure.
+    """ .
+
+aai:PRReviewerSkill
+    a owl:Class ;
+    rdfs:subClassOf aai:Skill ;
+    rdfs:label "PR Reviewer Skill" ;
+    rdfs:comment "Formal role: senior engineer reviewing code for quality, security, performance, and tests." .
+
+aai:DataContractSkill
+    a owl:Class ;
+    rdfs:subClassOf aai:Skill ;
+    rdfs:label "Data Contract Skill" ;
+    rdfs:comment "Formal role: data engineer generating ODCS-compliant data contracts." .
+
+aai:OpenSpecValidatorSkill
+    a owl:Class ;
+    rdfs:subClassOf aai:Skill ;
+    rdfs:label "OpenSpec Validator Skill" ;
+    rdfs:comment "Formal role: schema validator checking output conformance to OpenSpec YAML." .
+
+aai:AgentBenchSkill
+    a owl:Class ;
+    rdfs:subClassOf aai:Skill ;
+    rdfs:label "AgentBench Skill" ;
+    rdfs:comment "Formal role: benchmark runner measuring agent time/cost vs manual baselines." .
+
+aai:OntologyValidatorSkill
+    a owl:Class ;
+    rdfs:subClassOf aai:Skill ;
+    rdfs:label "Ontology Validator Skill" ;
+    rdfs:comment "Formal role: ontology-aware code reviewer classifying findings into OWL classes." .
+
+aai:Schema
+    a owl:Class ;
+    rdfs:label "Schema" ;
+    rdfs:comment "An OpenSpec YAML schema that enforces the semantic structure of agent output." .
+
+aai:PRSchema
+    a owl:Class ;
+    rdfs:subClassOf aai:Schema ;
+    rdfs:label "PR Spec Schema" ;
+    rdfs:comment "OpenSpec schema for PR description structure (pr-spec.yaml)." .
+
+aai:DataContractSchema
+    a owl:Class ;
+    rdfs:subClassOf aai:Schema ;
+    rdfs:label "Data Contract Schema" ;
+    rdfs:comment "OpenSpec schema for ODCS data contracts (data-contract.spec.yaml)." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LAYER 5 — CODE REVIEW DOMAIN CLASSES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:CodeFile
+    a owl:Class ;
+    rdfs:label "Code File" ;
+    rdfs:comment "A source code file submitted for review (e.g., security.py, fee.py)." .
+
+aai:PythonFile
+    a owl:Class ;
+    rdfs:subClassOf aai:CodeFile ;
+    rdfs:label "Python File" ;
+    rdfs:comment "A Python (.py) source file." .
+
+aai:ReviewFinding
+    a owl:Class ;
+    rdfs:label "Review Finding" ;
+    rdfs:comment "A single finding identified during code review — the base class for all finding types." .
+
+aai:BugFinding
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Bug Finding" ;
+    rdfs:comment "A logical error or defect that causes incorrect behaviour at runtime." .
+
+aai:SecurityVulnerability
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Security Vulnerability" ;
+    rdfs:comment "A security weakness: SQL injection, hardcoded secrets, missing auth, unvalidated input, etc." .
+
+aai:DesignIssue
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Design Issue" ;
+    rdfs:comment "A structural or architectural concern: poor naming, DRY violations, tight coupling." .
+
+aai:PerformanceIssue
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Performance Issue" ;
+    rdfs:comment "A performance concern: N+1 queries, blocking calls in async context, missing indexes." .
+
+aai:CodeQualityIssue
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Code Quality Issue" ;
+    rdfs:comment "A code quality concern: missing type hints, poor documentation, test coverage gaps." .
+
+aai:Suggestion
+    a owl:Class ;
+    rdfs:subClassOf aai:ReviewFinding ;
+    rdfs:label "Suggestion" ;
+    rdfs:comment "A nice-to-have improvement that is not blocking — may include a code snippet." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# OBJECT PROPERTIES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:hasSkill
+    a owl:ObjectProperty ;
+    rdfs:domain aai:SkillAgent ;
+    rdfs:range  aai:Skill ;
+    rdfs:label  "has skill" ;
+    rdfs:comment "Relates a SkillAgent to its formal ontological role definition." .
+
+aai:processesTask
+    a owl:ObjectProperty ;
+    rdfs:domain aai:SkillAgent ;
+    rdfs:range  aai:Task ;
+    rdfs:label  "processes task" ;
+    rdfs:comment "Relates a SkillAgent to the task it is executing." .
+
+aai:produces
+    a owl:ObjectProperty ;
+    rdfs:domain aai:SkillAgent ;
+    rdfs:range  aai:Artifact ;
+    rdfs:label  "produces" ;
+    rdfs:comment "Relates a SkillAgent to the artifact it generates." .
+
+aai:validatedBy
+    a owl:ObjectProperty ;
+    rdfs:domain aai:Artifact ;
+    rdfs:range  aai:Schema ;
+    rdfs:label  "validated by" ;
+    rdfs:comment "Relates an artifact to the OpenSpec schema that enforces its semantic structure." .
+
+aai:isDefinedBy
+    a owl:ObjectProperty ;
+    rdfs:domain aai:Skill ;
+    rdfs:range  rdfs:Resource ;
+    rdfs:label  "is defined by" ;
+    rdfs:comment "Relates a Skill to the SKILL.md file URI that encodes its formal role definition." .
+
+aai:hasFinding
+    a owl:ObjectProperty ;
+    rdfs:domain aai:ReviewReport ;
+    rdfs:range  aai:ReviewFinding ;
+    rdfs:label  "has finding" ;
+    rdfs:comment "Relates a ReviewReport to the individual findings it contains." .
+
+aai:analyzesFile
+    a owl:ObjectProperty ;
+    rdfs:domain aai:CodeReviewTask ;
+    rdfs:range  aai:CodeFile ;
+    rdfs:label  "analyzes file" ;
+    rdfs:comment "Relates a CodeReviewTask to the source file being reviewed." .
+
+aai:concernsFile
+    a owl:ObjectProperty ;
+    rdfs:domain aai:ReviewFinding ;
+    rdfs:range  aai:CodeFile ;
+    rdfs:label  "concerns file" ;
+    rdfs:comment "Relates a finding to the source file it was found in." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DATA PROPERTIES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:hasFilePath
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:CodeFile ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "has file path" ;
+    rdfs:comment "Absolute or relative path to the source file on the filesystem." .
+
+aai:hasLineCount
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:CodeFile ;
+    rdfs:range  xsd:integer ;
+    rdfs:label  "has line count" ;
+    rdfs:comment "Number of lines in the source file." .
+
+aai:hasElapsedTime
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:Artifact ;
+    rdfs:range  xsd:decimal ;
+    rdfs:label  "has elapsed time" ;
+    rdfs:comment "Wall-clock time in seconds taken by the agent to produce this artifact." .
+
+aai:hasSeverity
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:ReviewFinding ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "has severity" ;
+    rdfs:comment "Severity level of the finding: High, Medium, or Low." .
+
+aai:hasDescription
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:ReviewFinding ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "has description" ;
+    rdfs:comment "Human-readable description of the finding." .
+
+aai:hasSkillName
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:Skill ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "has skill name" ;
+    rdfs:comment "The kebab-case identifier for the skill, matching its directory name." .
+
+aai:hasModelName
+    a owl:DatatypeProperty ;
+    rdfs:domain aai:SkillAgent ;
+    rdfs:range  xsd:string ;
+    rdfs:label  "has model name" ;
+    rdfs:comment "The LLM model identifier used by this agent (e.g., claude-sonnet-4-6)." .
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# INDIVIDUALS — CONCRETE SKILL INSTANCES
+# ═══════════════════════════════════════════════════════════════════════════
+
+aai:PRReviewerSkillInstance
+    a aai:PRReviewerSkill ;
+    aai:hasSkillName "pr-reviewer" ;
+    aai:isDefinedBy <skills/pr-reviewer/SKILL.md> ;
+    rdfs:label "PR Reviewer Skill Instance" .
+
+aai:DataContractSkillInstance
+    a aai:DataContractSkill ;
+    aai:hasSkillName "data-contract-bot" ;
+    aai:isDefinedBy <skills/data-contract-bot/SKILL.md> ;
+    rdfs:label "Data Contract Skill Instance" .
+
+aai:OpenSpecValidatorSkillInstance
+    a aai:OpenSpecValidatorSkill ;
+    aai:hasSkillName "openspec-validator" ;
+    aai:isDefinedBy <skills/openspec-validator/SKILL.md> ;
+    rdfs:label "OpenSpec Validator Skill Instance" .
+
+aai:AgentBenchSkillInstance
+    a aai:AgentBenchSkill ;
+    aai:hasSkillName "agentbench-runner" ;
+    aai:isDefinedBy <skills/agentbench-runner/SKILL.md> ;
+    rdfs:label "AgentBench Skill Instance" .
+
+aai:OntologyValidatorSkillInstance
+    a aai:OntologyValidatorSkill ;
+    aai:hasSkillName "ontology-validator" ;
+    aai:isDefinedBy <skills/ontology-validator/SKILL.md> ;
+    rdfs:label "Ontology Validator Skill Instance" .

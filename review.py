@@ -4,24 +4,43 @@ review.py — Agentic AI code reviewer powered by devflow-lab
 
 Usage:
     python review.py <path-to-your-project>
+    python review.py <path-to-your-project> --ontology   # ontology-aware review
 
 Examples:
     python review.py ../SOLO_NODE
-    python review.py ~/projects/my-app
+    python review.py ~/projects/my-app --ontology
     python review.py .
 
 What it does:
     - Scans your project for Python files
-    - Reviews each one using the pr-reviewer skill (Claude)
+    - Reviews each file using the pr-reviewer skill (default) or the
+      ontology-validator skill (--ontology flag)
+    - With --ontology: classifies every finding into formal OWL classes
+      (SecurityVulnerability, BugFinding, DesignIssue, etc.) and validates
+      each result against the agentic-ai OWL ontology
     - Saves a full Markdown report → review_report.md
 
 Requirements:
     pip install anthropic rich httpx python-dotenv
+    pip install rdflib    # optional — only needed for ontology loader queries
     Add your ANTHROPIC_API_KEY to .env
 """
 
 import os, sys, time
 from pathlib import Path
+
+# ── Ontology module (graceful fallback if rdflib not installed) ───────────────
+sys.path.insert(0, str(Path(__file__).parent))
+try:
+    from app.backend.ontology.mapper import SkillMapper
+    from app.backend.ontology.validator import OntologyValidator
+    _ont_mapper    = SkillMapper()
+    _ont_validator = OntologyValidator()
+    ONTOLOGY_AVAILABLE = True
+except Exception:
+    _ont_mapper    = None
+    _ont_validator = None
+    ONTOLOGY_AVAILABLE = False
 
 # ── Load .env (overwrites empty env vars set by corp proxies) ────────────────
 _env = Path(__file__).parent / ".env"
@@ -61,6 +80,9 @@ SKIP_FILES = {"__init__.py", "setup.py", "conftest.py", "manage.py"}
 # Max file size to send (characters) — avoids huge files timing out
 MAX_CHARS  = 8000
 
+# Ontology namespace
+AAI_NS = "https://sandeep-diddi.github.io/agentic-ai-devflow/ontology#"
+
 
 # ── Load skill ────────────────────────────────────────────────────────────────
 def load_skill(name: str) -> str:
@@ -84,7 +106,7 @@ def get_client() -> anthropic.Anthropic:
     return _client
 
 
-def review_file(filepath: Path, skill: str) -> dict:
+def review_file(filepath: Path, skill: str, use_ontology: bool = False) -> dict:
     code = filepath.read_text(errors="replace")
     if len(code) > MAX_CHARS:
         code = code[:MAX_CHARS] + f"\n\n... [truncated — file too large, showing first {MAX_CHARS} chars]"
@@ -96,8 +118,8 @@ def review_file(filepath: Path, skill: str) -> dict:
         "Be specific — reference actual function and variable names you see."
     )
 
-    start = time.time()
-    resp  = get_client().messages.create(
+    start   = time.time()
+    resp    = get_client().messages.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
         system=system,
@@ -105,13 +127,19 @@ def review_file(filepath: Path, skill: str) -> dict:
     )
     elapsed = round(time.time() - start, 1)
 
-    return {
+    result = {
         "file":    filepath.name,
         "path":    str(filepath),
         "elapsed": elapsed,
         "lines":   len(filepath.read_text(errors="replace").splitlines()),
         "review":  resp.content[0].text,
     }
+
+    # ── Ontological validation ────────────────────────────────────────────
+    if use_ontology and ONTOLOGY_AVAILABLE and _ont_validator:
+        result = _ont_validator.validate(result, skill)
+
+    return result
 
 
 # ── Find Python files in project ──────────────────────────────────────────────
@@ -133,7 +161,7 @@ def find_python_files(project_path: Path) -> list[Path]:
 
 
 # ── Build Markdown report ─────────────────────────────────────────────────────
-def build_report(project_path: Path, results: list[dict]) -> str:
+def build_report(project_path: Path, results: list[dict], use_ontology: bool = False) -> str:
     from datetime import datetime
     ts            = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     total_manual  = len(results) * 45   # ~45 min per file for a human
@@ -141,16 +169,40 @@ def build_report(project_path: Path, results: list[dict]) -> str:
     total_saved   = round((1 - (total_agent / 60) / total_manual) * 100, 1)
     speedup       = round(total_manual / max(total_agent / 60, 0.001))
 
+    skill_used = "ontology-validator" if use_ontology else "pr-reviewer"
+
     lines = [
-        f"# Agentic AI Code Review",
+        "# Agentic AI Code Review",
         f"**Project:** `{project_path.resolve().name}`  ",
         f"**Generated:** {ts}  ",
         f"**Model:** `{MODEL}`  ",
+        f"**Skill:** `{skill_used}`  ",
         f"**Files reviewed:** {len(results)}\n",
-        "---\n",
-        "## Summary\n",
-        f"| | |",
-        f"|---|---|",
+    ]
+
+    if use_ontology:
+        lines += [
+            "## Ontological Framework\n",
+            f"**Ontology:** `agentic-ai.owl`  ",
+            f"**Namespace:** `{AAI_NS}`  ",
+            "**Agent class:** `aai:OntologyValidatorAgent`  ",
+            "**Skill class:** `aai:OntologyValidatorSkill`  \n",
+            "Each finding below is classified into a formal OWL class from the `aai:ReviewFinding` hierarchy:\n",
+            "| OWL Class | Meaning |",
+            "|---|---|",
+            "| `aai:SecurityVulnerability` | Injection, hardcoded secrets, missing auth |",
+            "| `aai:BugFinding` | Logic errors, incorrect behaviour, crashes |",
+            "| `aai:PerformanceIssue` | N+1, blocking async, memory/cache concerns |",
+            "| `aai:DesignIssue` | DRY violations, tight coupling, poor naming |",
+            "| `aai:CodeQualityIssue` | Type hints, test coverage, documentation |",
+            "| `aai:Suggestion` | Optional improvements, nice-to-haves |\n",
+            "---\n",
+        ]
+
+    lines += [
+        "## Performance Summary\n",
+        "| | |",
+        "|---|---|",
         f"| Files reviewed | {len(results)} |",
         f"| Manual estimate | ~{total_manual} minutes |",
         f"| Agent completed in | {total_agent} seconds |",
@@ -159,13 +211,47 @@ def build_report(project_path: Path, results: list[dict]) -> str:
         "---\n",
     ]
 
+    # ── Ontology findings summary table ──────────────────────────────────
+    if use_ontology and any("findings" in r for r in results):
+        from collections import Counter
+        all_class_counts: Counter = Counter()
+        total_conformance = 0.0
+        for r in results:
+            for f in r.get("findings", []):
+                all_class_counts[f.get("class_name", "ReviewFinding")] += 1
+            total_conformance += r.get("conformance_score", 1.0)
+        avg_conformance = round(total_conformance / len(results), 2) if results else 0
+
+        lines += [
+            "## Ontological Finding Distribution\n",
+            f"**Average conformance score:** {avg_conformance:.0%}  \n",
+            "| OWL Class | Finding Count |",
+            "|---|---|",
+        ]
+        for cls, count in sorted(all_class_counts.items(), key=lambda x: -x[1]):
+            lines.append(f"| `aai:{cls}` | {count} |")
+        lines.append("\n---\n")
+
+    # ── Per-file sections ─────────────────────────────────────────────────
     for r in results:
         lines += [
             f"## `{r['file']}`",
-            f"_{r['lines']} lines · reviewed in {r['elapsed']}s_\n",
-            r["review"],
-            "\n---\n",
+            f"_{r['lines']} lines · reviewed in {r['elapsed']}s_",
         ]
+
+        if use_ontology and "ontological_class" in r:
+            lines += [
+                f"**Agent class:** `{r['ontological_class'].split('#')[-1]}`  ",
+                f"**Conformance:** {r.get('conformance_score', 1.0):.0%}  ",
+                f"**Findings classified:** {r.get('finding_count', 0)}\n",
+            ]
+            if r.get("violations"):
+                lines.append("⚠️ **Ontological violations:**")
+                for v in r["violations"]:
+                    lines.append(f"- {v}")
+                lines.append("")
+
+        lines += [r["review"], "\n---\n"]
 
     return "\n".join(lines)
 
@@ -175,14 +261,25 @@ def build_report(project_path: Path, results: list[dict]) -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
-    # ── Parse argument ────────────────────────────────────────────────────────
-    if len(sys.argv) < 2:
-        console.print("\n[bold red]Usage:[/bold red]  python review.py <path-to-project>\n")
+    # ── Parse arguments ────────────────────────────────────────────────────────
+    positional = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags      = [a for a in sys.argv[1:] if a.startswith("--")]
+    use_ontology = "--ontology" in flags
+
+    if not positional:
+        console.print("\n[bold red]Usage:[/bold red]  python review.py <path-to-project> [--ontology]\n")
         console.print("  Example:  python review.py ../SOLO_NODE")
-        console.print("  Example:  python review.py ~/projects/my-app\n")
+        console.print("  Example:  python review.py ~/projects/my-app --ontology\n")
+        console.print("  [dim]--ontology   Ontology-aware review: classifies findings into OWL classes[/dim]\n")
         sys.exit(1)
 
-    project_path = Path(sys.argv[1]).resolve()
+    project_path = Path(positional[0]).resolve()
+
+    if use_ontology and not ONTOLOGY_AVAILABLE:
+        console.print("[yellow]⚠  Ontology module unavailable — falling back to pr-reviewer.[/yellow]")
+        use_ontology = False
+
+    skill = "ontology-validator" if use_ontology else "pr-reviewer"
 
     if not project_path.exists():
         console.print(f"\n[red]❌  Project folder not found: {project_path}[/red]\n")
@@ -197,11 +294,14 @@ def main():
 
     # ── Header ────────────────────────────────────────────────────────────────
     console.print()
+    mode_label = "[bold magenta]Ontology-Aware[/bold magenta] " if use_ontology else ""
     console.print(Panel.fit(
-        f"[bold cyan]Agentic AI Code Review[/bold cyan]\n"
-        f"[dim]Project: {project_path.name}  ·  {len(py_files)} Python files found[/dim]",
+        f"[bold cyan]Agentic AI Code Review[/bold cyan]  {mode_label}\n"
+        f"[dim]Project: {project_path.name}  ·  {len(py_files)} Python files  ·  skill: {skill}[/dim]",
         border_style="cyan",
     ))
+    if use_ontology:
+        console.print(f"[dim]  Ontology: agentic-ai.owl  ·  namespace: {AAI_NS}[/dim]")
     console.print()
 
     # Show files that will be reviewed
@@ -215,15 +315,26 @@ def main():
     for i, filepath in enumerate(py_files, 1):
         console.rule(f"[bold]{i}/{len(py_files)} · {filepath.name}[/bold]")
 
-        with Progress(SpinnerColumn(), TextColumn("[cyan]{task.description}"),
+        task_desc = (
+            "Claude is reviewing via [bold magenta]ontology-validator[/bold magenta] skill..."
+            if use_ontology else
+            "Claude is reviewing via [bold cyan]pr-reviewer[/bold cyan] skill..."
+        )
+        with Progress(SpinnerColumn(), TextColumn(f"[cyan]{{task.description}}"),
                       transient=True, console=console) as progress:
-            progress.add_task("Claude is reviewing via pr-reviewer skill...")
-            result = review_file(filepath, "pr-reviewer")
+            progress.add_task(task_desc)
+            result = review_file(filepath, skill, use_ontology=use_ontology)
 
         results.append(result)
+
+        # Show ontological summary if available
+        panel_subtitle = ""
+        if use_ontology and "finding_count" in result:
+            panel_subtitle = f"  [dim]{result['finding_count']} findings classified · conformance {result.get('conformance_score', 1):.0%}[/dim]"
+
         console.print(Panel(
             result["review"],
-            title=f"[green]{filepath.name}[/green]",
+            title=f"[green]{filepath.name}[/green]{panel_subtitle}",
             border_style="green",
             padding=(1, 2),
         ))
@@ -251,12 +362,16 @@ def main():
     console.print(table)
 
     # ── Save report ───────────────────────────────────────────────────────────
-    report     = build_report(project_path, results)
-    out_path   = Path(__file__).parent / "review_report.md"
+    report   = build_report(project_path, results, use_ontology=use_ontology)
+    out_path = Path(__file__).parent / "review_report.md"
     out_path.write_text(report)
 
     console.print()
-    console.print(f"[bold green]✅  Report saved → review_report.md[/bold green]\n")
+    if use_ontology:
+        console.print(f"[bold green]✅  Ontology-annotated report saved → review_report.md[/bold green]")
+        console.print(f"[dim]   OWL findings classified · namespace: {AAI_NS}[/dim]\n")
+    else:
+        console.print(f"[bold green]✅  Report saved → review_report.md[/bold green]\n")
 
 
 if __name__ == "__main__":
